@@ -116,7 +116,11 @@ def collect_metrics(client, name, number, parent:, operation_name:)
   sha = '<unknown>'
   loop do
     # get metrics for a build
-    build_details = client.job.get_build_details(name, number)
+    begin
+      build_details = client.job.get_build_details(name, number)
+    rescue JenkinsApi::Exceptions::NotFound
+      raise "The upstream build #{name} number #{number} wasn't found, maybe there isn't enough job history?"
+    end
 
     raise "Build #{name}/#{number} not found" unless build_details
 
@@ -204,7 +208,7 @@ def to_human(tm)
   end
 end
 
-branch = ENV['BRANCH'] || 'master'
+branch = ENV['BRANCH'] || 'main'
 pipeline = "platform_puppet-agent_puppet-agent-promote-to-pe_daily-#{branch}"
 regex = /^#{Regexp.escape(pipeline)}/
 pipelines = client.job.list_all.select { |job| job =~ regex }
